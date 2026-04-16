@@ -16,6 +16,7 @@ def fresh_roster() -> dict[str, Dino]:
         # he hit a triple. Coasts on pedigree — hence high confidence, soft
         # motivation.
         "rex": Dino(
+            slug="rex",
             name="Rex Kingston",
             species="Tyrannosaurus rex",
             power=9, durability=9, defense=6, brains=4, xfactor=6,
@@ -24,6 +25,7 @@ def fresh_roster() -> dict[str, Dino]:
         # TOP CONTENDER-IN-WAITING. Cocky technician, ex-pack alpha turned
         # solo act. Rock-tier mic. Tweener crowd eats him up.
         "velo": Dino(
+            slug="velo",
             name="Velo Machado",
             species="Velociraptor",
             power=6, durability=5, defense=7, brains=9, xfactor=8,
@@ -32,6 +34,7 @@ def fresh_roster() -> dict[str, Dino]:
         # #1 CONTENDER, TITLE SHOT EARNED. Blue-collar face. Walking tank,
         # chip on his armored shoulder. The People's Tank.
         "anky": Dino(
+            slug="anky",
             name="Anky Bronson",
             species="Ankylosaurus",
             power=7, durability=10, defense=9, brains=5, xfactor=4,
@@ -41,6 +44,7 @@ def fresh_roster() -> dict[str, Dino]:
         # a rumored stable in the wings. Will cheat, will spit venom, will
         # accept cash from anyone.
         "dilo": Dino(
+            slug="dilo",
             name="Dilo DeVille",
             species="Dilophosaurus",
             power=5, durability=6, defense=7, brains=8, xfactor=9,

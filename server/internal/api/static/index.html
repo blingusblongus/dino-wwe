@@ -21,6 +21,23 @@
   .err { color: #ff6b6b; }
   .auth-badge { color: #5cb85c; }
   .anon-badge { color: #888; }
+  .vignette {
+    border-left: 3px solid #f4d35e; padding: 6px 10px; margin: 4px 0;
+    background: #1e1c0f; color: #d8d8d8;
+  }
+  .vignette .vt { color: #f4d35e; font-weight: 600; }
+  .match-banner {
+    border: 1px solid #5cb85c; padding: 6px 10px; margin: 6px 0;
+    color: #5cb85c; background: #0d1e0d;
+  }
+  .match-end {
+    border: 1px solid #ff6b6b; padding: 6px 10px; margin: 6px 0;
+    color: #ff6b6b; background: #1e0d0d; font-weight: 600;
+  }
+  .round { padding: 4px 10px; border-left: 2px solid #2a2a2a; margin: 2px 0; }
+  .round .rh { color: #6a6a6a; }
+  .round .nar { white-space: pre-wrap; }
+  .hp { color: #888; font-size: 12px; }
   form { display: flex; gap: 8px; margin-top: 12px; }
   input[type=text] {
     flex: 1; background: #161616; color: #d8d8d8;
@@ -119,10 +136,40 @@ function connect() {
       case "chat.message":
         renderChat(env.payload);
         break;
-      case "match.start":
-      case "match.round":
-      case "match.end":
-      case "vignette.drop":
+      case "match.start": {
+        const p = env.payload;
+        append(`<div class="match-banner">⚔ MATCH START — ${escapeHtml(p.title || p.match_id)} (${(p.dinos||[]).join(" vs ")})</div>`, null);
+        break;
+      }
+      case "match.round": {
+        const p = env.payload;
+        const hp = p.hp ? Object.entries(p.hp).map(([k,v]) => `${k}: ${v}`).join("  ") : "";
+        append(
+          `<div class="round">` +
+            `<div class="rh">round ${p.round}</div>` +
+            `<div class="nar">${escapeHtml(p.narration || "")}</div>` +
+            (hp ? `<div class="hp">HP — ${escapeHtml(hp)}</div>` : "") +
+          `</div>`
+        );
+        break;
+      }
+      case "match.end": {
+        const p = env.payload;
+        const hp = p.final_hp ? Object.entries(p.final_hp).map(([k,v]) => `${k}: ${v}`).join("  ") : "";
+        append(`<div class="match-end">★ ${escapeHtml(p.winner)} defeats ${escapeHtml(p.loser)} by ${escapeHtml(p.method)} (${escapeHtml(hp)})</div>`);
+        break;
+      }
+      case "vignette.drop": {
+        const p = env.payload;
+        append(
+          `<div class="vignette">` +
+            `<div class="vt">▸ ${escapeHtml(p.title || "(vignette)")}</div>` +
+            (p.text ? `<div>${escapeHtml(p.text)}</div>` : "") +
+            (p.ref ? `<div class="hp">→ ${escapeHtml(p.ref)}</div>` : "") +
+          `</div>`
+        );
+        break;
+      }
       case "reaction.burst":
         append(`<span class="sys">[${env.type}] ${escapeHtml(JSON.stringify(env.payload))}</span>`);
         break;

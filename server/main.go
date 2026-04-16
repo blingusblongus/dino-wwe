@@ -44,9 +44,11 @@ func main() {
 		RateLimitWindow:  time.Duration(cfg.ChatRateLimitWindowMs) * time.Millisecond,
 	})
 
-	// Showrunner is a stub for now — loads runsheets but doesn't broadcast yet.
-	runner := showrunner.New(cfg.DataDir, hub)
-	go runner.Start(context.Background())
+	// Showrunner walks each runsheet under <data>/shows/* on its own goroutine.
+	runnerCtx, cancelRunner := context.WithCancel(context.Background())
+	defer cancelRunner()
+	runner := showrunner.New(cfg.DataDir, hub, store)
+	runner.Start(runnerCtx)
 
 	// HTTP routes.
 	if cfg.GinMode != "" {

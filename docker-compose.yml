@@ -1,0 +1,40 @@
+# Dino-WWE compose. Server is the only long-lived process; sim is run on
+# demand via `docker compose run --rm sim python episode_2.py`.
+
+services:
+  server:
+    build: ./server
+    container_name: dino-wwe-server
+    restart: unless-stopped
+    # Host-side port is configurable so deploy targets can avoid collisions.
+    # Override via env or .env file:  HOST_PORT=8765 docker compose up -d
+    ports:
+      - "${HOST_PORT:-19090}:9090"
+    volumes:
+      - ./data:/data
+      - ./content:/content:ro       # blog posts + episode narratives, read-only
+    environment:
+      DATA_DIR: /data
+      CONTENT_DIR: /content
+      LISTEN_ADDR: ":9090"
+      CHAT_RATE_LIMIT_MSGS: "20"
+      CHAT_RATE_LIMIT_WINDOW_MS: "10000"
+      CHAT_MAX_MESSAGE_LEN: "500"
+      ANON_COOKIE_NAME: "dwwa_anon"
+      # When Caddy + Authentik land, set this to "true" so the server trusts
+      # the X-Authentik-* headers from the proxy.
+      TRUST_AUTH_HEADERS: "false"
+      GIN_MODE: "release"
+
+  # One-shot sim runner. Not started by `docker compose up`.
+  # Usage:
+  #   docker compose run --rm sim python episode_2.py
+  sim:
+    build: ./sim
+    container_name: dino-wwe-sim
+    profiles: ["tools"]
+    volumes:
+      - ./sim:/app
+      - ./data:/data
+      - ./content:/content
+    working_dir: /app

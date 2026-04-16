@@ -1,0 +1,16 @@
+# Build artifacts — produced inside the container, no need to ship them in.
+bin/
+*.test
+
+# asdf / version manager pins — irrelevant in container
+.tool-versions
+
+# Editor cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local-only env files
+.env
+.env.local

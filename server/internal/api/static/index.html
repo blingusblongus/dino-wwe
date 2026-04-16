@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dino-WWE — chat smoke test</title>
+<style>
+  body {
+    font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #0d0d0d; color: #d8d8d8;
+    max-width: 720px; margin: 32px auto; padding: 0 16px;
+  }
+  h1 { font-size: 18px; color: #f4d35e; margin: 0 0 4px; }
+  .meta { color: #888; margin-bottom: 16px; }
+  .you { color: #f4d35e; }
+  #log {
+    height: 60vh; overflow-y: auto;
+    border: 1px solid #2a2a2a; padding: 10px; background: #161616;
+  }
+  .row { padding: 2px 0; }
+  .sys { color: #6a6a6a; font-style: italic; }
+  .err { color: #ff6b6b; }
+  .auth-badge { color: #5cb85c; }
+  .anon-badge { color: #888; }
+  form { display: flex; gap: 8px; margin-top: 12px; }
+  input[type=text] {
+    flex: 1; background: #161616; color: #d8d8d8;
+    border: 1px solid #2a2a2a; padding: 8px; font: inherit;
+  }
+  button {
+    background: #f4d35e; color: #0d0d0d; border: 0;
+    padding: 8px 14px; cursor: pointer; font: inherit; font-weight: 600;
+  }
+  .controls { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .controls input { width: 220px; background: #161616; color: #d8d8d8; border: 1px solid #2a2a2a; padding: 4px 8px; font: inherit; }
+</style>
+</head>
+<body>
+  <h1>Dino-WWE — chat smoke test</h1>
+  <div class="meta">
+    You are <span id="me" class="you">…</span>
+    <span id="badge"></span>
+  </div>
+
+  <div class="controls">
+    <label for="room">Show ID:</label>
+    <input id="room" type="text" value="test-room" />
+    <button id="reconnect" type="button">connect</button>
+  </div>
+
+  <div id="log"></div>
+
+  <form id="form">
+    <input id="input" type="text" autocomplete="off" placeholder="say something…" />
+    <button type="submit">send</button>
+  </form>
+
+<script>
+const logEl = document.getElementById("log");
+const meEl = document.getElementById("me");
+const badgeEl = document.getElementById("badge");
+const formEl = document.getElementById("form");
+const inputEl = document.getElementById("input");
+const roomEl = document.getElementById("room");
+const reconnectBtn = document.getElementById("reconnect");
+
+let ws = null;
+let myUserID = null;
+
+function append(html, cls) {
+  const div = document.createElement("div");
+  div.className = "row" + (cls ? " " + cls : "");
+  div.innerHTML = html;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function fmtTime(ms) {
+  const d = new Date(ms);
+  return d.toLocaleTimeString();
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+function renderChat(m) {
+  const cls = m.user_id === myUserID ? "you" : "";
+  const handle = `<span class="${cls}">${escapeHtml(m.handle)}</span>`;
+  const t = fmtTime(m.at_ms);
+  append(`<span class="sys">${t}</span> ${handle}: ${escapeHtml(m.text)}`);
+}
+
+function connect() {
+  if (ws) { try { ws.close(); } catch {} }
+  const showID = encodeURIComponent(roomEl.value.trim() || "test-room");
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const url = `${proto}://${location.host}/ws/shows/${showID}`;
+  append(`<span class="sys">connecting → ${url}</span>`);
+
+  ws = new WebSocket(url);
+  ws.onopen = () => append(`<span class="sys">connected.</span>`);
+  ws.onclose = (e) => append(`<span class="sys">disconnected (code ${e.code}).</span>`);
+  ws.onerror = (e) => append(`<span class="err">socket error</span>`);
+  ws.onmessage = (ev) => {
+    let env;
+    try { env = JSON.parse(ev.data); } catch { return; }
+    switch (env.type) {
+      case "hello": {
+        const p = env.payload;
+        myUserID = p.user_id;
+        meEl.textContent = p.handle;
+        badgeEl.className = p.is_authed ? "auth-badge" : "anon-badge";
+        badgeEl.textContent = p.is_authed ? " (authed)" : " (anon)";
+        append(`<span class="sys">— backfill (${p.backfill?.length || 0}) —</span>`);
+        (p.backfill || []).forEach(renderChat);
+        append(`<span class="sys">— live —</span>`);
+        break;
+      }
+      case "chat.message":
+        renderChat(env.payload);
+        break;
+      case "match.start":
+      case "match.round":
+      case "match.end":
+      case "vignette.drop":
+      case "reaction.burst":
+        append(`<span class="sys">[${env.type}] ${escapeHtml(JSON.stringify(env.payload))}</span>`);
+        break;
+      case "error":
+        append(`<span class="err">error: ${escapeHtml(env.payload?.code || "?")}</span>`);
+        break;
+      default:
+        append(`<span class="sys">unknown: ${escapeHtml(JSON.stringify(env))}</span>`);
+    }
+  };
+}
+
+formEl.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = inputEl.value.trim();
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: "chat.send", payload: { text } }));
+  inputEl.value = "";
+});
+
+reconnectBtn.addEventListener("click", connect);
+
+// Hit /api/me first so we get an anon cookie set BEFORE the WS handshake;
+// otherwise the cookie won't make it onto the upgrade request.
+fetch("/api/me", { credentials: "include" })
+  .then(r => r.json())
+  .then(me => {
+    meEl.textContent = me.handle;
+    badgeEl.className = me.is_authed ? "auth-badge" : "anon-badge";
+    badgeEl.textContent = me.is_authed ? " (authed)" : " (anon)";
+    connect();
+  })
+  .catch(() => connect());
+</script>
+</body>
+</html>

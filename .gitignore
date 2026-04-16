@@ -1,0 +1,29 @@
+# Runtime data (chat DB, generated match JSONs, etc.)
+data/*
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Go
+server/server
+server/*.test
+server/bin/
+server/dist/
+
+# Astro
+web/node_modules/
+web/dist/
+web/.astro/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Env
+.env
+.env.local

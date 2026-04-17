@@ -27,3 +27,6 @@ web/.astro/
 # Env
 .env
 .env.local
+
+# Local-only compose override (dev builds from source, server pulls from GHCR)
+docker-compose.override.yml

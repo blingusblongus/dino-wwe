@@ -1,9 +1,12 @@
 # Dino-WWE compose. Server is the only long-lived process; sim is run on
 # demand via `docker compose run --rm sim python episode_2.py`.
+#
+# For local dev:  `make up` builds from source (docker-compose.override.yml).
+# On the server:  pulls pre-built image from GHCR.
 
 services:
   server:
-    build: ./server
+    image: ghcr.io/blingusblongus/dino-wwe-server:latest
     container_name: dino-wwe-server
     restart: unless-stopped
     # Host-side port is configurable so deploy targets can avoid collisions.
@@ -28,7 +31,7 @@ services:
 
   # One-shot sim runner. Not started by `docker compose up`.
   # Usage:
-  #   docker compose run --rm sim python episode_2.py
+  #   docker compose run --rm sim python episode_2.py --write --narrate
   sim:
     build: ./sim
     container_name: dino-wwe-sim
@@ -38,3 +41,6 @@ services:
       - ./data:/data
       - ./content:/content
     working_dir: /app
+    environment:
+      NARRATOR_BASE_URL: "${NARRATOR_BASE_URL:-http://host.docker.internal:11434}"
+      NARRATOR_MODEL: "${NARRATOR_MODEL:-gemma4:e4b}"

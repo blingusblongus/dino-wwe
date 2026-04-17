@@ -1,0 +1,57 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+// For POC: hardcode known show IDs. Later, scan data/shows/.
+export function getStaticPaths() {
+  return [
+    { params: { id: "ep1" } },
+    { params: { id: "ep2" } },
+    { params: { id: "test-room" } },
+  ];
+}
+
+const { id } = Astro.params;
+---
+
+<Layout title={`Show: ${id}`} fullViewport>
+  <div data-show-id={id} class="h-full grid grid-cols-1 md:grid-cols-[1fr_320px] gap-0">
+    <!-- Match panel (center) -->
+    <div class="flex flex-col min-h-0 border-r border-border">
+      <div class="px-4 py-2 border-b border-border bg-bg-card flex items-center justify-between">
+        <h2 class="text-gold font-bold text-sm tracking-wide uppercase">Show: {id}</h2>
+        <span id="conn-status" class="text-muted text-xs">connecting...</span>
+      </div>
+      <div id="match-area" class="flex-1 overflow-y-auto p-4 space-y-1">
+        <p class="text-muted text-sm italic">Waiting for show to begin...</p>
+      </div>
+    </div>
+
+    <!-- Chat panel (right) -->
+    <div class="flex flex-col min-h-0 bg-bg-card">
+      <div class="px-3 py-2 border-b border-border text-xs">
+        Chat as <span id="my-handle" class="text-gold font-bold">...</span>
+      </div>
+      <div id="chat-log" class="flex-1 overflow-y-auto px-3 py-2 space-y-0.5"></div>
+      <form id="chat-form" class="flex gap-2 p-2 border-t border-border">
+        <input
+          id="chat-input"
+          type="text"
+          autocomplete="off"
+          placeholder="Say something..."
+          class="flex-1 bg-bg px-3 py-1.5 rounded border border-border text-sm text-text placeholder:text-muted focus:border-gold focus:outline-none"
+        />
+        <button
+          type="submit"
+          class="px-3 py-1.5 bg-gold text-bg font-bold rounded text-sm hover:opacity-90"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { initShowUI } from "../../scripts/show-ui";
+  initShowUI();
+</script>

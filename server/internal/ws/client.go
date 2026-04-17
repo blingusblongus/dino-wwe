@@ -73,14 +73,29 @@ func Serve(hub *Hub, showID string, ident Identity, w http.ResponseWriter, r *ht
 	// client always sees its own context first.
 	backfill, err := hub.Store().Backfill(r.Context(), showID, 100)
 	if err != nil {
-		log.Printf("backfill: %v", err)
+		log.Printf("chat backfill: %v", err)
 	}
+
+	// Event backfill — replay all show events that already fired.
+	storedEvents, err := hub.Store().EventBackfill(r.Context(), showID)
+	if err != nil {
+		log.Printf("event backfill: %v", err)
+	}
+	var helloEvents []HelloEvent
+	for _, se := range storedEvents {
+		helloEvents = append(helloEvents, HelloEvent{
+			Kind:    se.Kind,
+			Payload: json.RawMessage(se.Payload),
+		})
+	}
+
 	hello := mustEncode(MsgHello, Hello{
 		ShowID:   showID,
 		UserID:   ident.UserID,
 		Handle:   ident.Handle,
 		IsAuthed: ident.IsAuthed,
 		Backfill: backfill,
+		Events:   helloEvents,
 	})
 	c.send <- hello
 

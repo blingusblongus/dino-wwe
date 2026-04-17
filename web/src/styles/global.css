@@ -1,0 +1,61 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme inline {
+  --color-bg: #0d0d0d;
+  --color-bg-card: #161616;
+  --color-bg-elevated: #1e1e1e;
+  --color-text: #d8d8d8;
+  --color-muted: #888888;
+  --color-gold: #f4d35e;
+  --color-green: #5cb85c;
+  --color-red: #ff6b6b;
+  --color-border: #2a2a2a;
+}
+
+html {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Narration/match text uses monospace */
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Prose styling for blog posts */
+.prose {
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-gold);
+  --tw-prose-links: var(--color-gold);
+  --tw-prose-bold: #ffffff;
+  --tw-prose-quotes: var(--color-muted);
+  --tw-prose-quote-borders: var(--color-gold);
+  --tw-prose-hr: var(--color-border);
+}
+
+/* HP bar */
+.hp-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-bg-card);
+  overflow: hidden;
+}
+.hp-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* Stat bar (1-10 scale) */
+.stat-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-bg);
+}
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-gold);
+}

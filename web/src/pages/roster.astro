@@ -1,0 +1,13 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DinoCard from "../components/DinoCard.astro";
+import { roster } from "../data/roster";
+---
+
+<Layout title="Active Roster">
+  <h1 class="text-2xl font-bold text-gold mb-1">WDAA Season 1 — Active Roster</h1>
+  <p class="text-muted text-sm mb-8">Four dinosaurs. One belt. Stats 1–10.</p>
+  <div class="grid gap-6 md:grid-cols-2">
+    {roster.map((dino) => <DinoCard dino={dino} />)}
+  </div>
+</Layout>

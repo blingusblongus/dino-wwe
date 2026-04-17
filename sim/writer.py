@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable, Union
 
 from sim import Dino, MatchData, simulate
+from narrator import EpisodeContext, narrate_match, expand_vignette
 
 
 # ----- Show plan items -----
@@ -35,6 +36,7 @@ class Match:
     a: Dino
     b: Dino
     seed: int | None = None
+    max_rounds: int = 7
     interference: dict | None = None
 
 
@@ -70,7 +72,15 @@ def write_show(
     starts_at: datetime,
     plan: Iterable[PlanItem],
     timing: TimingConfig | None = None,
+    narrate: bool = False,
+    episode_ctx: EpisodeContext | None = None,
 ) -> WrittenShow:
+    """Write runsheet.json + match files.
+
+    If narrate=True and episode_ctx is provided, runs an LLM pass to
+    produce dramatic commentary for matches and expanded vignettes.
+    Falls back to mechanical narration if the LLM is unreachable.
+    """
     timing = timing or TimingConfig()
     show_dir = Path(out_dir) / "shows" / show_id
     show_dir.mkdir(parents=True, exist_ok=True)
@@ -82,9 +92,14 @@ def write_show(
 
     for item in plan:
         if isinstance(item, Vignette):
+            text = item.text
+            if narrate and episode_ctx and text:
+                expanded = expand_vignette(item.title, text, episode_ctx)
+                if expanded:
+                    text = expanded
             payload: dict[str, Any] = {"title": item.title}
-            if item.text is not None:
-                payload["text"] = item.text
+            if text is not None:
+                payload["text"] = text
             if item.ref is not None:
                 payload["ref"] = item.ref
             events.append({
@@ -96,7 +111,15 @@ def write_show(
 
         elif isinstance(item, Match):
             match_idx += 1
-            data = simulate(item.a, item.b, seed=item.seed, interference=item.interference)
+            data = simulate(item.a, item.b, seed=item.seed, max_rounds=item.max_rounds, interference=item.interference)
+
+            # LLM narration pass — overwrites mechanical round narration.
+            if narrate and episode_ctx:
+                print(f"[narrator] narrating {item.title}...")
+                narrations = narrate_match(data, item.title, episode_ctx)
+                for i, rd in enumerate(data.rounds):
+                    if i < len(narrations):
+                        rd.narration = narrations[i]
 
             # Persist the per-match JSON.
             match_path = show_dir / f"match_{match_idx}.json"

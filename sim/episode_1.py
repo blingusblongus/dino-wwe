@@ -19,8 +19,9 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timedelta, timezone
 
+from narrator import EpisodeContext
 from roster import fresh_roster
-from sim import simulate
+from sim import Dino, simulate
 from writer import Match, TimingConfig, Vignette, write_show
 
 
@@ -51,6 +52,7 @@ def build_plan() -> tuple[list, dict]:
             title="Velo Machado vs. Dilo DeVille (Opener)",
             a=d["velo"], b=d["dilo"],
             seed=42,
+            max_rounds=5,
         ),
         Vignette(
             title="Backstage — The Emperor's Briefcase",
@@ -65,6 +67,7 @@ def build_plan() -> tuple[list, dict]:
             title="Rex Kingston (c) vs. Anky Bronson — WDAA Apex Championship",
             a=d["rex"], b=d["anky"],
             seed=7,
+            max_rounds=9,
             interference={
                 "round": 4,
                 "chance": 0.65,
@@ -97,9 +100,11 @@ def main() -> None:
                     help="Wall-clock seconds between successive rounds.")
     ap.add_argument("--vignette-seconds", type=int, default=25,
                     help="Wall-clock seconds a vignette is given before the next item.")
+    ap.add_argument("--narrate", action="store_true",
+                    help="Run LLM narration pass (requires Ollama or compatible endpoint).")
     args = ap.parse_args()
 
-    plan, _ = build_plan()
+    plan, d = build_plan()
 
     if args.write:
         starts_at = datetime.now(timezone.utc) + timedelta(seconds=args.starts_in)
@@ -107,6 +112,30 @@ def main() -> None:
             vignette_seconds=args.vignette_seconds,
             round_seconds=args.round_seconds,
         )
+
+        ctx = None
+        if args.narrate:
+            ctx = EpisodeContext(
+                title=SHOW_TITLE,
+                storyline_threads=(
+                    "- Rex Kingston has held the Apex title for 413 days. Nepo-baby heel, "
+                    "managed by his father The Emperor.\n"
+                    "- Anky Bronson earned his title shot via gauntlet. His father was "
+                    "stiffed on a pension by The Emperor — it's personal.\n"
+                    "- Velo Machado believes he deserved the title shot, not Anky. "
+                    "Publicly furious.\n"
+                    "- Dilo DeVille has been seen talking to The Emperor in parking lots. "
+                    "He has a manager, Dr. Mendoza, with an unopened briefcase.\n"
+                    "- The Emperor's briefcase and Mendoza's briefcase may be the same briefcase."
+                ),
+                previous_outcomes="This is the season premiere. No previous episode.",
+                roster_bios="\n".join(
+                    f"- {v.name} ({v.species}): {v.slug}. "
+                    f"Signature: guess. Finisher: guess."
+                    for v in d.values()
+                ),
+            )
+
         result = write_show(
             out_dir=args.out_dir,
             show_id=SHOW_ID,
@@ -114,6 +143,8 @@ def main() -> None:
             starts_at=starts_at,
             plan=plan,
             timing=timing,
+            narrate=args.narrate,
+            episode_ctx=ctx,
         )
         print(f"wrote runsheet: {result.runsheet_path}")
         for p in result.match_paths:

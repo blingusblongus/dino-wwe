@@ -144,6 +144,11 @@ func (r *Runner) fire(ctx context.Context, showID string, idx int, ev Event) {
 		_ = r.store.SetState(ctx, chat.ShowState{ShowID: showID})
 	}
 
+	// Persist the event for late-joiner backfill.
+	if err := r.store.SaveEvent(ctx, showID, string(ev.Kind), ev.Payload); err != nil {
+		log.Printf("showrunner[%s]: save event: %v", showID, err)
+	}
+
 	// Pass payload through unmodified — hub's marshaler handles json.RawMessage.
 	r.hub.Broadcast(showID, string(ev.Kind), ev.Payload)
 }

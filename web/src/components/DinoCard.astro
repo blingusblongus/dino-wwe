@@ -1,0 +1,55 @@
+---
+import type { Dino } from "../data/roster";
+
+interface Props {
+  dino: Dino;
+}
+
+const { dino } = Astro.props;
+
+const alignColor: Record<string, string> = {
+  Face: "text-green",
+  Heel: "text-red",
+  Tweener: "text-gold",
+};
+
+const statLabels = [
+  { key: "pow", label: "POW" },
+  { key: "dur", label: "DUR" },
+  { key: "def", label: "DEF" },
+  { key: "bra", label: "BRA" },
+  { key: "xf",  label: "X-F" },
+  { key: "conf", label: "CONF" },
+  { key: "mot", label: "MOT" },
+] as const;
+---
+
+<div class="border border-border rounded-lg bg-bg-card p-4">
+  <div class="flex items-baseline gap-2 mb-1">
+    <h3 class="text-gold font-bold text-lg">{dino.name}</h3>
+    <span class="text-muted text-xs italic">{dino.epithet}</span>
+  </div>
+  <p class="text-xs text-muted mb-2">
+    {dino.species} · <span class={alignColor[dino.alignment] || "text-muted"}>{dino.alignment}</span>
+    {dino.title && <span> · {dino.title}</span>}
+  </p>
+  <p class="text-sm mb-3 leading-relaxed">{dino.description}</p>
+  <div class="text-xs text-muted mb-3 space-y-0.5">
+    <p><span class="text-text">Signature:</span> {dino.signature}</p>
+    <p><span class="text-text">Finisher:</span> {dino.finisher}</p>
+  </div>
+  <div class="grid grid-cols-7 gap-1.5 text-center text-xs">
+    {statLabels.map(({ key, label }) => {
+      const val = dino.stats[key as keyof typeof dino.stats];
+      return (
+        <div>
+          <div class="text-muted mb-1">{label}</div>
+          <div class="stat-bar">
+            <div class="stat-bar-fill" style={`width: ${val * 10}%`}></div>
+          </div>
+          <div class="text-text mt-0.5">{val}</div>
+        </div>
+      );
+    })}
+  </div>
+</div>

@@ -167,3 +167,45 @@ func (s *Store) SetState(ctx context.Context, st ShowState) error {
 	`, st.ShowID, st.CurrentMatchID, st.CurrentRound, time.Now().UnixMilli())
 	return err
 }
+
+// ----- Show event persistence (for late-joiner backfill) -----
+
+// ShowEvent is a persisted show event (vignette, match round, etc.).
+type ShowEvent struct {
+	ID      int64  `json:"id"`
+	ShowID  string `json:"show_id"`
+	Kind    string `json:"kind"`
+	Payload string `json:"payload"` // raw JSON
+	FiredAt int64  `json:"fired_at"`
+}
+
+// SaveEvent persists a show event so late joiners can see it.
+func (s *Store) SaveEvent(ctx context.Context, showID, kind string, payload []byte) error {
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO show_events (show_id, kind, payload, fired_at)
+		VALUES (?, ?, ?, ?)
+	`, showID, kind, string(payload), time.Now().UnixMilli())
+	return err
+}
+
+// EventBackfill returns all fired events for a show, ordered by firing time.
+func (s *Store) EventBackfill(ctx context.Context, showID string) ([]ShowEvent, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, show_id, kind, payload, fired_at
+		FROM show_events WHERE show_id = ? ORDER BY id ASC
+	`, showID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []ShowEvent
+	for rows.Next() {
+		var ev ShowEvent
+		if err := rows.Scan(&ev.ID, &ev.ShowID, &ev.Kind, &ev.Payload, &ev.FiredAt); err != nil {
+			return nil, err
+		}
+		out = append(out, ev)
+	}
+	return out, rows.Err()
+}

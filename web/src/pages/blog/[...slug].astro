@@ -1,0 +1,40 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const dateStr = post.data.date.toLocaleDateString("en-US", {
+  year: "numeric", month: "long", day: "numeric",
+});
+---
+
+<Layout title={post.data.title}>
+  <a href="/blog" class="text-muted text-sm hover:text-gold mb-4 inline-block">&larr; Back to The Asteroid Report</a>
+  <article>
+    <header class="mb-8">
+      <h1 class="text-2xl font-bold text-gold mb-2">{post.data.title}</h1>
+      <p class="text-muted text-sm">
+        {dateStr} · {post.data.author} · <em>{post.data.publication}</em>
+      </p>
+      {post.data.tags.length > 0 && (
+        <div class="flex flex-wrap gap-1 mt-2">
+          {post.data.tags.map((tag: string) => (
+            <span class="text-xs px-2 py-0.5 rounded bg-bg-elevated text-muted">{tag}</span>
+          ))}
+        </div>
+      )}
+    </header>
+    <div class="prose prose-invert max-w-none">
+      <Content />
+    </div>
+  </article>
+</Layout>

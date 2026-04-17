@@ -36,12 +36,19 @@ type Envelope struct {
 // connection's identity (so the browser doesn't have to compute its own
 // handle) and a backfill of recent chat messages so late joiners feel
 // continuity.
+// HelloEvent is a show event replayed in the hello backfill.
+type HelloEvent struct {
+	Kind    string          `json:"kind"`
+	Payload json.RawMessage `json:"payload"`
+}
+
 type Hello struct {
 	ShowID   string         `json:"show_id"`
 	UserID   string         `json:"user_id"`
 	Handle   string         `json:"handle"`
 	IsAuthed bool           `json:"is_authed"`
 	Backfill []chat.Message `json:"backfill"`
+	Events   []HelloEvent   `json:"events"` // show events that already fired
 }
 
 // MatchStart announces an upcoming match. Dinos is a slice of two slugs

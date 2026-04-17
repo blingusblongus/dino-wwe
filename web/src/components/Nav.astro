@@ -1,0 +1,19 @@
+---
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/blog", label: "The Asteroid Report" },
+  { href: "/roster", label: "Roster" },
+  { href: "/shows/ep1", label: "Watch Live" },
+];
+---
+
+<nav class="flex items-center gap-6 px-4 py-3 border-b border-border bg-bg-card text-sm">
+  <a href="/" class="text-gold font-bold tracking-wider text-base">WDAA</a>
+  <div class="flex gap-4 ml-auto">
+    {links.map(({ href, label }) => (
+      <a href={href} class="text-muted hover:text-gold transition-colors">
+        {label}
+      </a>
+    ))}
+  </div>
+</nav>

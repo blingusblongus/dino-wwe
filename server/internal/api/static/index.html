@@ -118,21 +118,8 @@ function connect() {
   ws.onopen = () => append(`<span class="sys">connected.</span>`);
   ws.onclose = (e) => append(`<span class="sys">disconnected (code ${e.code}).</span>`);
   ws.onerror = (e) => append(`<span class="err">socket error</span>`);
-  ws.onmessage = (ev) => {
-    let env;
-    try { env = JSON.parse(ev.data); } catch { return; }
+  function handleEvent(env) {
     switch (env.type) {
-      case "hello": {
-        const p = env.payload;
-        myUserID = p.user_id;
-        meEl.textContent = p.handle;
-        badgeEl.className = p.is_authed ? "auth-badge" : "anon-badge";
-        badgeEl.textContent = p.is_authed ? " (authed)" : " (anon)";
-        append(`<span class="sys">— backfill (${p.backfill?.length || 0}) —</span>`);
-        (p.backfill || []).forEach(renderChat);
-        append(`<span class="sys">— live —</span>`);
-        break;
-      }
       case "chat.message":
         renderChat(env.payload);
         break;
@@ -173,11 +160,34 @@ function connect() {
       case "reaction.burst":
         append(`<span class="sys">[${env.type}] ${escapeHtml(JSON.stringify(env.payload))}</span>`);
         break;
+    }
+  }
+
+  ws.onmessage = (ev) => {
+    let env;
+    try { env = JSON.parse(ev.data); } catch { return; }
+    switch (env.type) {
+      case "hello": {
+        const p = env.payload;
+        myUserID = p.user_id;
+        meEl.textContent = p.handle;
+        badgeEl.className = p.is_authed ? "auth-badge" : "anon-badge";
+        badgeEl.textContent = p.is_authed ? " (authed)" : " (anon)";
+        // Replay show events that already fired (late-joiner backfill).
+        if (p.events && p.events.length > 0) {
+          append(`<span class="sys">— show backfill (${p.events.length} events) —</span>`);
+          p.events.forEach(se => handleEvent({ type: se.kind, payload: se.payload }));
+        }
+        append(`<span class="sys">— chat backfill (${p.backfill?.length || 0}) —</span>`);
+        (p.backfill || []).forEach(renderChat);
+        append(`<span class="sys">— live —</span>`);
+        break;
+      }
       case "error":
         append(`<span class="err">error: ${escapeHtml(env.payload?.code || "?")}</span>`);
         break;
       default:
-        append(`<span class="sys">unknown: ${escapeHtml(JSON.stringify(env))}</span>`);
+        handleEvent(env);
     }
   };
 }
